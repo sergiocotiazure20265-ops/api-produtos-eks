@@ -1,0 +1,71 @@
+# Nome do workflow que aparecerá na aba Actions do GitHub
+name: CI/CD API PRODUTOS
+
+# Define quando o workflow será executado
+on:
+  # Executa o workflow quando houver um push no repositório
+  push:
+    # Define em quais branches o workflow será executado
+    branches:
+      # Executa somente quando o push for feito na branch main
+      - main
+
+# Define os jobs que serão executados no workflow
+jobs:
+
+  # Nome do job responsável por fazer build e deploy da aplicação
+  build-and-deploy:
+
+    # Define o sistema operacional usado para executar o job
+    runs-on: ubuntu-latest
+
+    # Lista de etapas executadas dentro do job
+    steps:
+
+      # Etapa para baixar o código-fonte do repositório
+      - name: Checkout código
+
+        # Usa a action oficial do GitHub para fazer checkout do código
+        uses: actions/checkout@v3
+
+      # Etapa para fazer login no Docker Hub
+      - name: Login Docker Hub
+
+        # Usa a action oficial de login no Docker Hub
+        uses: docker/login-action@v2
+
+        # Dados usados para autenticação no Docker Hub
+        with:
+
+          # Usuário do Docker Hub salvo nos secrets do GitHub
+          username: ${{ secrets.DOCKER_USERNAME }}
+
+          # Senha ou token do Docker Hub salvo nos secrets do GitHub
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Etapa para gerar a imagem Docker da aplicação
+      - name: Build imagem
+
+        # Cria a imagem Docker com uma tag baseada no número da execução do GitHub Actions
+        run: docker build -t sergiocoti/api-produtos:v${{ github.run_number }} .
+
+      # Etapa para enviar a imagem criada para o Docker Hub
+      - name: Push imagem
+
+        # Envia a imagem Docker para o repositório no Docker Hub
+        run: docker push sergiocoti/api-produtos:v${{ github.run_number }}
+
+      # Etapa para configurar o acesso ao cluster Kubernetes
+      - name: Configurar kubeconfig
+
+        # Cria a pasta .kube e grava o kubeconfig vindo dos secrets do GitHub
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+
+      # Etapa para atualizar a imagem usada pelo deployment no Kubernetes
+      - name: Atualizar deployment
+
+        # Atualiza a imagem do container api-produtos dentro do deployment api-produtos
+        run: |
+          kubectl set image deployment/api-produtos api-produtos=sergiocoti/api-produtos-eks:v${{ github.run_number }}
