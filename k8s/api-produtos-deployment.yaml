@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-produtos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-produtos
+  template:
+    metadata:
+      labels:
+        app: api-produtos
+    spec:
+      containers:
+        - name: api-produtos
+          image: sergiocoti/api-produtos-eks:v1
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_USER
+              value: 'admin'
+            - name: DB_PASSWORD
+              value: 'Coti2026'
+            - name: DB_SERVER
+              value: bd-kubernetes.cmj6q6meu5pz.us-east-1.rds.amazonaws.com
+            - name: DB_NAME
+              value: bd-kubernetes
